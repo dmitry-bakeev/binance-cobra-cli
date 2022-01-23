@@ -15,7 +15,7 @@ import (
 // rateCmd represents the rate command
 var rateCmd = &cobra.Command{
 	Use:   "rate",
-	Short: "A brief description of your command",
+	Short: "Get rate from local server",
 	Long:  "",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		pair, err := cmd.Flags().GetString("pair")
