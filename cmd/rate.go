@@ -5,7 +5,9 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/spf13/cobra"
 )
@@ -14,27 +16,50 @@ import (
 var rateCmd = &cobra.Command{
 	Use:   "rate",
 	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("rate called")
+	Long:  "",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		pair, err := cmd.Flags().GetString("pair")
+		if err != nil {
+			return err
+		}
+		if pair == "" {
+			return fmt.Errorf("flag --pair is required")
+		}
+		GetRate(pair)
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(rateCmd)
+	rateCmd.PersistentFlags().StringP("pair", "p", "", "Pair to rate. Example: ETH-USDT")
+}
 
-	// Here you will define your flags and configuration settings.
+type AppClient struct {
+	Host string
+	Port int
+}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// rateCmd.PersistentFlags().String("foo", "", "A help for foo")
+func GetRate(pair string) error {
+	url := fmt.Sprintf("http://%s:%d/api/v1/rates?pairs=%s", "localhost", 3001, pair)
+	response, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// rateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	var result map[string]interface{}
+
+	err = json.NewDecoder(response.Body).Decode(&result)
+	if err != nil {
+		return err
+	}
+
+	rate, ok := result[pair]
+	if !ok {
+		fmt.Println("Did not receive a response")
+	} else {
+		fmt.Println(rate)
+	}
+	return nil
 }
